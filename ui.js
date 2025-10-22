@@ -38,7 +38,6 @@ export class UIManager {
         this.closeReplayButton.addEventListener('click', () => this.hideReplayViewer());
         this.downloadReplayButton.addEventListener('click', () => this.downloadReplay());
         this.leaderboardButton.addEventListener('click', onViewLeaderboard);
-        this.leaderboardGameoverButton.addEventListener('click', onViewLeaderboard);
         this.closeLeaderboardButton.addEventListener('click', onCloseLeaderboard);
         this.prevPageButton.addEventListener('click', () => this.changePage(-1));
         this.nextPageButton.addEventListener('click', () => this.changePage(1));

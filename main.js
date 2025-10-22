@@ -16,6 +16,7 @@ let isScoreSubmitted = false;
 let replayBlobPromise = null;
 let replayUrlPromise = null;
 let pendingSubmissions = []; // Track background submissions
+let gameOverInProgress = false;
 
 const room = new WebsimSocket();
 
@@ -57,6 +58,12 @@ function init() {
             ui.updateStreak(count, isGolden, isPerfectHit);
         },
         onGameOver: async (score) => {
+            if (gameOverInProgress) return;
+            gameOverInProgress = true;
+
+            const previousReplayRecorder = replayRecorder;
+            replayRecorder = null; // Prevent new game from using the old recorder
+
             currentScore = score;
             ui.showGameOver(score);
             ui.setReplayButtonState(true, 'Preparing...');
@@ -64,14 +71,15 @@ function init() {
             // Wait 3 seconds to capture falling blocks
             await new Promise(resolve => setTimeout(resolve, 3000));
 
-            if (!replayRecorder) {
+            if (!previousReplayRecorder) {
                 console.error("No replay recorder found on game over.");
                 autoSubmitScore(null, score);
+                gameOverInProgress = false;
                 return;
             }
             
             // stop() now returns a promise that resolves with the blob
-            const blob = await replayRecorder.stop();
+            const blob = await previousReplayRecorder.stop();
             
             replayBlobPromise = Promise.resolve(blob);
 
@@ -80,6 +88,7 @@ function init() {
             if (!isScoreSubmitted) {
                 autoSubmitScore(blob, score);
             }
+            gameOverInProgress = false;
         }
     };
 
@@ -108,14 +117,13 @@ function startGame() {
     replayUrlPromise = null;
     isScoreSubmitted = false;
     
-    replayRecorder = new ReplayRecorder(renderer.domElement, audioManager);
+    // Only create a new recorder if one isn't being processed from a previous game
+    if (!replayRecorder && !gameOverInProgress) {
+        replayRecorder = new ReplayRecorder(renderer.domElement, audioManager);
+    }
 }
 
 function restart() {
-    // No longer need to manually stop, as it happens in onGameOver
-    // if (replayRecorder && replayRecorder.isRecording) {
-    //     replayRecorder.stop();
-    // }
     game.restart();
     startGame();
 }
